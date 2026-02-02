@@ -1,0 +1,13 @@
+services:
+  db:
+    image: mariadb:lts-ubi9
+    container_name: mysql-db  # Easier to remember
+    environment:
+      MARIADB_ROOT_PASSWORD: root
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql # Saves your data!
+
+volumes:
+  mysql_data: # Declares the volume

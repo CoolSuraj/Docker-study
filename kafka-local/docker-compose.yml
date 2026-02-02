@@ -1,0 +1,99 @@
+services:
+  # --- THE CORE BROKER (The "Post Office") ---
+  kafka:
+    # Stable JVM-based image. More reliable for local dev across different OS/Hardware.
+    image: apache/kafka:latest
+    container_name: kafka-wallet-enterprise
+    ports:
+      - "9092:9092" # Port used by external apps (like your Spring Boot App)
+    environment:
+      # IDENTIFICATION: Every node in a KRaft cluster needs a unique numeric ID.
+      KAFKA_NODE_ID: 1
+      
+      # ROLES: Combined mode. This node handles data (broker) AND metadata management (controller).
+      KAFKA_PROCESS_ROLES: 'broker,controller'
+      
+      # SECURITY/IDENTITY: The UUID that locks this data to this specific cluster.
+      CLUSTER_ID: 'MkU3OEVBNTcwNTJENDM2Qk'
+      
+      # QUORUM: Tells the controller role how to find its peers (in this case, just itself).
+      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@localhost:9093'
+      
+      # 1. BINDING: Tells Kafka which ports to open physically.
+      # 9092 is for your host/Java app. 29092 is for UI/Docker internal.
+      KAFKA_LISTENERS: 'EXTERNAL://:9092,INTERNAL://:29092,CONTROLLER://:9093'
+
+      # 2. ADVERTISING: The "GPS Coordinates" Kafka gives back to clients.
+      # If you connect via 9092, Kafka says "Reach me at localhost".
+      # If you connect via 29092, Kafka says "Reach me at the service named 'kafka'".
+      KAFKA_ADVERTISED_LISTENERS: 'EXTERNAL://localhost:9092,INTERNAL://kafka:29092'
+
+      # 3. MAPPING: Map our custom names to the standard protocol.
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'EXTERNAL:PLAINTEXT,INTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT'
+
+      # 4. ROLES: Defines which listener the Controller and Inter-broker talk uses.
+      KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
+      KAFKA_INTER_BROKER_LISTENER_NAME: 'INTERNAL'
+      
+      # ARCHITECTURE GUARDRAIL: We turn off 'Auto-Create'. 
+      # This forces us to define partitions/topics in the 'init' section below.
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'false'
+      
+    # HEALTHCHECK: Ensures Kafka is fully 'ready' before other services try to connect.
+    healthcheck:
+      # Logic: Runs a command to ask Kafka for its own Cluster ID. 
+      # If Kafka answers, it's alive. If it errors (|| exit 1), it's not ready.
+      #test: ["CMD-SHELL", "/opt/kafka/bin/kafka-cluster.sh cluster-id --bootstrap-server localhost:9092 || exit 1"]
+      test: ["CMD", "nc", "-z", "localhost", "9092"]
+      interval: 10s      # Frequency of the check
+      timeout: 10s       # How long to wait for an answer
+      retries: 5        # Number of fails allowed before being marked 'unhealthy'
+      start_period: 20s # Warm-up time (Kafka needs time to initialize its internal logs)
+    # HEALTHCHECK: This is why your last run failed.
+    # We use 'kafka-broker-api-versions.sh' because it
+  # --- INFRASTRUCTURE PROVISIONER (The "DevOps" Script) ---
+  kafka-init:
+    image: apache/kafka:latest
+    depends_on:
+      kafka:
+        # CRITICAL: This service only triggers once the healthcheck above returns 'healthy'.
+        condition: service_healthy 
+    entrypoint: [ "/bin/sh", "-c" ]
+    command: |
+      "
+      # Topic for random testing (simple, 1 partition)
+      /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic test --partitions 1
+      
+      # The Wallet Topic (3 partitions for horizontal scaling of your Reward Service)
+      /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic transfer-events --partitions 3
+      "
+
+  # --- VISUAL DASHBOARD (The "Looking Glass") ---
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
+    ports:
+      - "9095:8080" # View dashboard at http://localhost:9095  The Bridge: Docker catches traffic on 9095 and tunnels it to the container's port 8080
+    depends_on:
+      kafka:
+        condition: service_healthy
+    environment:
+      # Display name for the cluster inside the UI
+      KAFKA_CLUSTERS_0_NAME: 'wallet-cluster'
+      # Inside the Docker network, the UI finds Kafka using the service name 'kafka'
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: 'kafka:29092'
+
+
+  
+
+
+#NOTES  
+    
+#  How to verify the "Health" status
+#  use this command -->   docker compose ps
+    
+#Target	        Command	                    Description
+#Containers	    docker                      container prune	Removes all stopped containers.
+#Images	        docker image prune -a	    Removes all images not used by a container.
+#Volumes	        docker volume prune	        Removes all volumes not used by a container (reclaims the most space).
+#Specific Image	docker rmi <image_id>	    Manually deletes one specific image.
