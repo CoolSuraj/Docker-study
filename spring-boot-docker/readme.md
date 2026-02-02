@@ -1,5 +1,56 @@
-
-
+To pass a specific profile (like dockerlocal) to your Java application running in Docker, you need to use an Environment Variable. In Spring Boot and most Java frameworks, you can set the spring.profiles.active property via the command line.
+Here is how you update your workflow to include the profile.
+1. The Build Command (Standard)
+First, ensure your JAR is built and ready.
+Bash
+# Maven
+mvn clean package -DskipTests
+# Gradle
+./gradlew build -x test
+2. Update your Dockerfile
+You should update your Dockerfile to use an environment variable. This makes the image flexible so you can change profiles later without rebuilding the image.
+Dockerfile
+FROM eclipse-temurin:17-jre-alpine
+WORKDIR /app
+COPY target/*.jar app.jar
+# Define a default profile (optional)
+ENV SPRING_PROFILES_ACTIVE=default
+# Use the environment variable in the entrypoint
+ENTRYPOINT ["java", "-Dspring.profiles.active=${SPRING_PROFILES_ACTIVE}", "-jar", "app.jar"]
+3. Build the Image
+Build the image as usual:
+Bash
+docker build -t my-java-app:latest .
+4. Run with the "dockerlocal" Profile
+This is the most important part. When you run the container, you use the -e flag to inject the profile name.
+For a web application:
+Bash
+docker run -d -p 8080:8080 -e "SPRING_PROFILES_ACTIVE=dockerlocal" --name my-app-instance my-java-app:latest
+For a console application:
+Bash
+docker run -it -e "SPRING_PROFILES_ACTIVE=dockerlocal" --name my-app-instance my-java-app:latest
+Why do it this way?
+By using the -e flag at runtime, you don't hardcode the profile inside the image. This means you can use the exact same image for dockerlocal, staging, or production just by changing the command line argument.
+5. Verify the Profile is Active
+To make sure your app actually picked up the dockerlocal profile, check the logs:
+Bash
+docker logs my-app-instance
+Look for a log line near the start that says:
+The following profiles are active: dockerlocal
+Intellij provide in built services to run app on Docker 
+The Simple Way —--
+For this add dockerfile and docker-compose.yml in the same folder i.e in target where jar is present after →         mvn clean package -DskipTests
+Use docker-compose up -d -build command
+To build and run the jar 
+And then if you want to see the logs →  docker logs -f my-api-container
+To Stop you can use →  docker-compose stop
+To remove container and stop → docker-compose down
+And container and volume removal → docker-compose down -v 
+If you want to remove unused and dangling images → docker image prune
+If you want to remove unused and dangling images verbose → docker image prune -a
+If you want to remove image completely → docker rmi <image-name>
+convert this info into readme.md file copy pastable format also if I have done mistake or typo fix it
+_____________________________________________________________________________
 ## 1. Build the JAR
 
 ```bash
@@ -133,4 +184,5 @@ Quick Reference Table
 
 GoalBest WayChange profile without rebuild-e SPRING_PROFILES_ACTIVE=… or compose envLocal dev workflowdocker compose up --build -dProduction readinessAdd non-root user + JAVA_OPTS RAM limitsVerify profiledocker logs → look for "profile is active"Clean updocker compose down -v + docker image prune
 One image. Many environments.
+
 Happy coding & deploying! 🚀
