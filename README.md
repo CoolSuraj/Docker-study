@@ -24,4 +24,20 @@ use docker exec -it mysql-db mariadb -u root -p // password is root
 
 Note: use db testdb;
 
+To use Kafka everything is given in docker-compose.yml in kafka folder
+commands to run are given in bat files in respective folder
+To remove images along with files --> docker compose down -v
+
+to remove all the inactive images --> 
+#NOTES  
+    
+#  How to verify the "Health" status
+#  use this command -->   docker compose ps
+    
+#Target	        Command	                    Description
+#Containers	    docker container prune	    Removes all stopped containers.
+#Images	        docker image prune -a	    Removes all images not used by a container.
+#Volumes	    docker volume prune	        Removes all volumes not used by a container (reclaims the most space).
+#Specific Image	docker rmi <image_id>	    Manually deletes one specific image.
+
 
