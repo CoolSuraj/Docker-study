@@ -1,0 +1,28 @@
+# Use an official lightweight Eclipse Temurin (Adoptium) JRE 17 image based on Alpine Linux
+# → Small image size (~70-80 MB), good security, widely used for Java apps
+FROM eclipse-temurin:17-jre-alpine
+
+# Set the working directory inside the container
+# All following commands will run from this location
+WORKDIR /app
+
+# Copy the compiled Spring Boot JAR file from your build context into the container
+# Renaming it to app.jar is a very common convention
+COPY SpringBootTutorial-0.0.1-SNAPSHOT.jar app.jar
+
+# Set a default Spring profile that will be used if no other value is provided
+# You can override this at runtime with -e SPRING_PROFILES_ACTIVE=prod
+# Common values: dev, test, prod, dockerlocal, staging...
+ENV SPRING_PROFILES_ACTIVE=dockerlocal
+
+# Define how the container should start the application
+# Using exec form (preferred) → better signal handling (SIGTERM works properly)
+# We use the environment variable so the active profile can be overridden easily
+# -Dspring.profiles.active=... must come before -jar
+ENTRYPOINT ["java", \
+            "-Dspring.profiles.active=${SPRING_PROFILES_ACTIVE}", \
+            "-jar", \
+            "app.jar"]
+
+# Alternative ENTRYPOINT style (if you prefer shell form - less recommended):
+# ENTRYPOINT java -Dspring.profiles.active=$SPRING_PROFILES_ACTIVE -jar app.jar

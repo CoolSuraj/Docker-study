@@ -1,0 +1,42 @@
+services:
+  # This is the name of your service within Docker Compose
+  spring-boot-tutorial:
+    # 'build: .' tells Docker to look for the 'Dockerfile' in this current folder
+    build: .
+    
+    # This matches your previous '--name' flag
+    container_name: my-api-container
+    
+    # Port Mapping: [Host Port]:[Container Port]
+    # This matches your '-p 8081:8081' flag
+    ports:
+      - "8081:8081"
+      
+    # Environment variables: matches your '-e' flags
+    environment:
+      # Sets the Spring profile to 'dockerlocal'
+      - SPRING_PROFILES_ACTIVE=dockerlocal
+      
+      # The JDBC URL: 
+      # 'mariadb' is the CONTAINER NAME of your database.
+      # If your DB container has a different name, change 'mariadb' below.
+      - SPRING_DATASOURCE_URL=jdbc:mariadb://mariadb:3306/testdb
+      
+      # It is safer to define credentials here than hardcoding in the JAR
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=root
+    
+    # Tells this container to join the existing network where MariaDB lives
+    networks:
+      - mariadb_network
+
+# This section defines the networks used by the services above
+networks:
+  mariadb_network:
+    # 'external: true' is CRITICAL. It means: "Don't create this network,
+    # it already exists on my machine."
+    external: true
+    
+    # IMPORTANT: Replace 'mysql-docker-test_default' with the actual name
+    # found via: docker inspect mariadb --format "{{.HostConfig.NetworkMode}}"
+    name: mysql-docker-test_default
