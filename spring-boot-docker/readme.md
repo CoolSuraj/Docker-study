@@ -35,21 +35,34 @@ By using the -e flag at runtime, you don't hardcode the profile inside the image
 To make sure your app actually picked up the dockerlocal profile, check the logs:
 Bash
 docker logs my-app-instance
+
 Look for a log line near the start that says:
+
 The following profiles are active: dockerlocal
+
 Intellij provide in built services to run app on Docker 
+
 The Simple Way —--
-For this add dockerfile and docker-compose.yml in the same folder i.e in target where jar is present after →         mvn clean package -DskipTests
+
+For this add dockerfile and docker-compose.yml in the same folder i.e in target where jar is
+present after →         mvn clean package -DskipTests
+
 Use docker-compose up -d -build command
 To build and run the jar 
+
 And then if you want to see the logs →  docker logs -f my-api-container
+
 To Stop you can use →  docker-compose stop
+
 To remove container and stop → docker-compose down
+
 And container and volume removal → docker-compose down -v 
+
 If you want to remove unused and dangling images → docker image prune
+
 If you want to remove unused and dangling images verbose → docker image prune -a
+
 If you want to remove image completely → docker rmi <image-name>
-convert this info into readme.md file copy pastable format also if I have done mistake or typo fix it
 _____________________________________________________________________________
 ## 1. Build the JAR
 
@@ -186,3 +199,4 @@ GoalBest WayChange profile without rebuild-e SPRING_PROFILES_ACTIVE=… or compo
 One image. Many environments.
 
 Happy coding & deploying! 🚀
+
